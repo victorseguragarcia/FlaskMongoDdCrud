@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask API MongoDB</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1, h2, h3 {
+            color: #333;
+        }
+
+        h1 {
+            margin-top: 20px;
+            font-size: 2.5rem;
+        }
+
+        table {
+            width: 80%;
+            margin: 20px 0;
+            border-collapse: collapse;
+            background-color: #fff;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007BFF;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        form {
+            margin: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 80%;
+        }
+
+        form input, form button {
+            margin-bottom: 10px;
+            padding: 10px;
+            width: calc(100% - 22px);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        form input:focus {
+            border-color: #007BFF;
+            outline: none;
+        }
+
+        form button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background-color: #0056b3;
+        }
+
+        .form-section {
+            margin-top: 20px;
+        }
+
+        .actions button {
+            margin-right: 5px;
+            padding: 5px 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .actions button:hover {
+            background-color: #0056b3;
+        }
+
+        .actions button.delete {
+            background-color: #dc3545;
+        }
+
+        .actions button.delete:hover {
+            background-color: #a71d2a;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bienvenido a la API de Flask y MongoDB</h1>
+
+    <h2>Lista de "Todos"</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Apellidos</th>
+                <th>Peso</th>
+                <th>DNI</th>
+                <th>Email</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="todos-list"></tbody>
+    </table>
+
+    <h3 class="form-section">Agregar un nuevo "Todo"</h3>
+    <form id="add-todo-form">
+        <input type="text" id="todo-nombre" placeholder="Nombre" required>
+        <input type="text" id="todo-apellidos" placeholder="Apellidos" required>
+        <input type="number" id="todo-peso" placeholder="Peso" required>
+        <input type="text" id="todo-dni" placeholder="DNI" required>
+        <input type="email" id="todo-email" placeholder="Email" required>
+        <button type="submit">Agregar Todo</button>
+    </form>
+
+    <h3 class="form-section">Actualizar un "Todo"</h3>
+    <form id="update-todo-form">
+        <input type="text" id="update-todo-id" placeholder="ID del Todo" required>
+        <input type="text" id="update-todo-nombre" placeholder="Nuevo Nombre">
+        <input type="text" id="update-todo-apellidos" placeholder="Nuevo Apellidos">
+        <input type="number" id="update-todo-peso" placeholder="Nuevo Peso">
+        <input type="text" id="update-todo-dni" placeholder="Nuevo DNI">
+        <input type="email" id="update-todo-email" placeholder="Nuevo Email">
+        <button type="submit">Actualizar Todo</button>
+    </form>
+
+    <h3 class="form-section">Eliminar un "Todo"</h3>
+    <form id="delete-todo-form">
+        <input type="text" id="delete-todo-id" placeholder="ID del Todo" required>
+        <button type="submit">Eliminar Todo</button>
+    </form>
+
+    <script>
+        $(document).ready(function() {
+            function fetchTodos() {
+                $.get('/todo/', function(data) {
+                    $('#todos-list').empty();
+                    data.forEach(function(todo) {
+                        $('#todos-list').append(`
+                            <tr id="todo-${todo._id}">
+                                <td>${todo.nombre}</td>
+                                <td>${todo.apellidos}</td>
+                                <td>${todo.peso}</td>
+                                <td>${todo.dni}</td>
+                                <td>${todo.email}</td>
+                                <td class="actions">
+                                    <button onclick="deleteTodo('${todo._id}')">Eliminar</button>
+                                    <button onclick="updateTodoForm('${todo._id}', '${todo.nombre}', '${todo.apellidos}', '${todo.peso}', '${todo.dni}', '${todo.email}')">Actualizar</button>
+                                </td>
+                            </tr>`);
+                    });
+                });
+            }
+
+            $('#add-todo-form').submit(function(e) {
+                e.preventDefault();
+                const nombre = $('#todo-nombre').val();
+                const apellidos = $('#todo-apellidos').val();
+                const peso = $('#todo-peso').val();
+                const dni = $('#todo-dni').val();
+                const email = $('#todo-email').val();
+                $.ajax({
+                    url: '/todo/',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ nombre, apellidos, peso, dni, email }),
+                    success: function() {
+                        fetchTodos();
+                        $('#todo-nombre').val('');
+                        $('#todo-apellidos').val('');
+                        $('#todo-peso').val('');
+                        $('#todo-dni').val('');
+                        $('#todo-email').val('');
+                    }
+                });
+            });
+
+            $('#update-todo-form').submit(function(e) {
+                e.preventDefault();
+                const id = $('#update-todo-id').val();
+                const nombre = $('#update-todo-nombre').val();
+                const apellidos = $('#update-todo-apellidos').val();
+                const peso = $('#update-todo-peso').val();
+                const dni = $('#update-todo-dni').val();
+                const email = $('#update-todo-email').val();
+                $.ajax({
+                    url: `/todo/${id}`,
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ nombre, apellidos, peso, dni, email }),
+                    success: function() {
+                        fetchTodos();
+                        $('#update-todo-id').val('');
+                        $('#update-todo-nombre').val('');
+                        $('#update-todo-apellidos').val('');
+                        $('#update-todo-peso').val('');
+                        $('#update-todo-dni').val('');
+                        $('#update-todo-email').val('');
+                    }
+                });
+            });
+
+            $('#delete-todo-form').submit(function(e) {
+                e.preventDefault();
+                const id = $('#delete-todo-id').val();
+                $.ajax({
+                    url: `/todo/${id}`,
+                    method: 'DELETE',
+                    success: function() {
+                        fetchTodos();
+                        $('#delete-todo-id').val('');
+                    }
+                });
+            });
+
+            window.updateTodoForm = function(id, nombre, apellidos, peso, dni, email) {
+                $('#update-todo-id').val(id);
+                $('#update-todo-nombre').val(nombre);
+                $('#update-todo-apellidos').val(apellidos);
+                $('#update-todo-peso').val(peso);
+                $('#update-todo-dni').val(dni);
+                $('#update-todo-email').val(email);
+            }
+
+            window.deleteTodo = function(id) {
+                $.ajax({
+                    url: `/todo/${id}`,
+                    method: 'DELETE',
+                    success: function() {
+                        fetchTodos();
+                    }
+                });
+            }
+
+            fetchTodos();
+        });
+    </script>
+</body>
+</html>
